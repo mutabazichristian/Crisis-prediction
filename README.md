@@ -1,5 +1,11 @@
- ##Crashout 2.0
+![image](images/Crashout_2.0.png)
 
 Is an African country going to have a banking crisis? let's find out!
 
-![image](images/Crashout_2.0.png)
+Visit project:
+
+Dataset:
+
+Methodology
+
+by Mutabazi Christian
