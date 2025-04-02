@@ -1,0 +1,24 @@
+version:'3'
+
+services:
+  web:
+    build: .
+    ports:
+      -"8000:8000"
+      volumes:
+        - ./data:/app/data
+        - ./model:app/models
+      environment:
+        - MODEL_PATH=/app/models/banking_crisis_model.pkl
+
+  load_test:
+    build:
+       context: .
+       dockerfile: docker/Dockerfile.locust
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./scripts:/scripts
+    command: -f /scripts/locust_test.py --host http://web:8000
+    depends_on:
+      -web
