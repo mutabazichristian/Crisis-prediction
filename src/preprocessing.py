@@ -159,18 +159,33 @@ def scale_features(df: pd.DataFrame, columns_to_scale: list, handle_outliers: bo
 def feature_selection(X: pd.DataFrame, y: pd.Series, n_features: int) -> tuple:
     """Select best features using SelectKBest"""
     try:
-        selector = SelectKBest(score_func=f_classif, k=n_features)
-        X_selected = selector.fit_transform(X, y)
-        selected_features = X.columns[selector.get_support()].tolist()
+        # Only select from numeric columns
+        numeric_cols = X.select_dtypes(include=[np.number]).columns
+        categorical_cols = X.select_dtypes(exclude=[np.number]).columns
         
-        # Log feature scores
+        if len(numeric_cols) == 0:
+            logger.warning("No numeric features available for selection")
+            return X, X.columns.tolist(), None
+            
+        # Apply feature selection only on numeric columns
+        selector = SelectKBest(score_func=f_classif, k=min(n_features, len(numeric_cols)))
+        X_numeric_selected = selector.fit_transform(X[numeric_cols], y)
+        selected_numeric_features = numeric_cols[selector.get_support()].tolist()
+        
+        # Log feature scores for numeric features
         feature_scores = pd.DataFrame({
-            'Feature': X.columns,
+            'Feature': numeric_cols,
             'Score': selector.scores_
         }).sort_values('Score', ascending=False)
         logger.info(f"Feature importance scores:\n{feature_scores}")
         
-        logger.info(f"Selected {n_features} best features: {selected_features}")
+        # Combine selected numeric features with categorical features
+        selected_features = selected_numeric_features + categorical_cols.tolist()
+        X_selected = pd.DataFrame(X_numeric_selected, columns=selected_numeric_features, index=X.index)
+        for col in categorical_cols:
+            X_selected[col] = X[col]
+            
+        logger.info(f"Selected features: {selected_features}")
         return X_selected, selected_features, selector
     except Exception as e:
         logger.error(f"Error in feature selection: {str(e)}")
