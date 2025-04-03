@@ -15,6 +15,7 @@ import logging
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 static_dir = os.path.join(BASE_DIR, 'static')
+templates_dir = os.path.join(BASE_DIR, 'templates')
 
 # Import local modules
 from src.prediction import PredictionService
@@ -42,7 +43,7 @@ app = FastAPI(
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Setup Jinja2 templates
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory=templates_dir)
 
 # Initialize prediction service
 try:

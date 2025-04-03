@@ -1,0 +1,168 @@
+/* Main Styles */
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+/* Navbar customization */
+.navbar-brand {
+    font-weight: 600;
+}
+
+/* Card customization */
+.card {
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    border: none;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    border-top-left-radius: 0.5rem !important;
+    border-top-right-radius: 0.5rem !important;
+    font-weight: 600;
+}
+
+/* Form styling */
+.form-control, .form-select {
+    border-radius: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Button styling */
+.btn {
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+/* Dashboard */
+.stat-card {
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 1rem;
+    color: #6c757d;
+}
+
+/* Risk indicators */
+.risk-low {
+    color: var(--success-color);
+}
+
+.risk-medium {
+    color: var(--warning-color);
+}
+
+.risk-high {
+    color: var(--danger-color);
+}
+
+/* Chart containers */
+.chart-container {
+    position: relative;
+    margin: auto;
+    height: 300px;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+/* Prediction results */
+.prediction-result {
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.prediction-result.risk-low {
+    background-color: rgba(25, 135, 84, 0.1);
+    border-left: 5px solid var(--success-color);
+}
+
+.prediction-result.risk-medium {
+    background-color: rgba(255, 193, 7, 0.1);
+    border-left: 5px solid var(--warning-color);
+}
+
+.prediction-result.risk-high {
+    background-color: rgba(220, 53, 69, 0.1);
+    border-left: 5px solid var(--danger-color);
+}
+
+/* Loader */
+.loader {
+    border: 4px solid #f3f3f3;
+    border-radius: 50%;
+    border-top: 4px solid var(--primary-color);
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+    .stat-value {
+        font-size: 2rem;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+
+/* Footer */
+footer {
+    margin-top: 2rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid #dee2e6;
+}

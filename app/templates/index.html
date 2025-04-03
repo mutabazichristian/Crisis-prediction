@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banking Crisis Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Banking Crisis Predictor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"><i class="fas fa-home me-1"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/predict"><i class="fas fa-calculator me-1"></i> Predict</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/visualize"><i class="fas fa-chart-bar me-1"></i> Visualize</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload"><i class="fas fa-upload me-1"></i> Upload Data</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <header class="py-5 bg-light">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <h1 class="display-4 fw-bold mb-3">Banking Crisis Prediction System</h1>
+                    <p class="lead mb-4">
+                        Using machine learning to predict and prevent banking crises in African countries through
+                        early detection of economic indicators and financial system vulnerabilities.
+                    </p>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                        <a href="/predict" class="btn btn-primary btn-lg px-4 me-md-2">
+                            <i class="fas fa-calculator me-2"></i>Make a Prediction
+                        </a>
+                        <a href="/visualize" class="btn btn-outline-secondary btn-lg px-4">
+                            <i class="fas fa-chart-bar me-2"></i>View Visualizations
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-5 d-none d-md-block">
+                    <div class="p-4 bg-white rounded shadow-lg">
+                        <h5 class="mb-3 text-center"><i class="fas fa-chart-pie me-2"></i>Current Risk Assessment</h5>
+                        <div class="chart-container" style="height: 200px;">
+                            <canvas id="riskOverviewChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section class="py-5">
+        <div class="container">
+            <h2 class="text-center mb-4">Dashboard</h2>
+            
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label for="countryFilter" class="form-label">Filter by Country</label>
+                        <select id="countryFilter" class="form-select">
+                            <option value="all" selected>All Countries</option>
+                            <option value="0">Algeria</option>
+                            <option value="1">Angola</option>
+                            <option value="2">Central African Republic</option>
+                            <option value="3">Egypt</option>
+                            <option value="4">Ivory Coast</option>
+                            <option value="5">Kenya</option>
+                            <option value="6">Mauritius</option>
+                            <option value="7">Morocco</option>
+                            <option value="8">Nigeria</option>
+                            <option value="9">South Africa</option>
+                            <option value="10">Tunisia</option>
+                            <option value="11">Zambia</option>
+                            <option value="12">Zimbabwe</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card shadow stat-card">
+                        <div class="card-body text-center">
+                            <div class="stat-value" id="totalPredictions">1245</div>
+                            <div class="stat-label">Total Predictions</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow stat-card">
+                        <div class="card-body text-center">
+                            <div class="stat-value" id="crisisDetected">187</div>
+                            <div class="stat-label">Crisis Detected</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow stat-card">
+                        <div class="card-body text-center">
+                            <div class="stat-value" id="averageProbability">31.0%</div>
+                            <div class="stat-label">Avg. Crisis Probability</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card shadow stat-card">
+                        <div class="card-body text-center">
+                            <div class="stat-value" id="modelAccuracy">89.0%</div>
+                            <div class="stat-label">Model Accuracy

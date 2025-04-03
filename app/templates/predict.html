@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Predict Banking Crisis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Banking Crisis Predictor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fas fa-home me-1"></i> Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/predict"><i class="fas fa-calculator me-1"></i> Predict</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/visualize"><i class="fas fa-chart-bar me-1"></i> Visualize</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/upload"><i class="fas fa-upload me-1"></i> Upload Data</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Banking Crisis Prediction</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">
+                            Enter economic data to predict the likelihood of a banking crisis in an African country.
+                        </p>
+                        <form action="/predict" method="post" class="needs-validation" novalidate>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="country" class="form-label">Country</label>
+                                    <select class="form-select" id="country" name="country" required>
+                                        <option value="" selected disabled>Select a country</option>
+                                        <option value="0">Algeria</option>
+                                        <option value="1">Angola</option>
+                                        <option value="2">Central African Republic</option>
+                                        <option value="3">Egypt</option>
+                                        <option value="4">Ivory Coast</option>
+                                        <option value="5">Kenya</option>
+                                        <option value="6">Mauritius</option>
+                                        <option value="7">Morocco</option>
+                                        <option value="8">Nigeria</option>
+                                        <option value="9">South Africa</option>
+                                        <option value="10">Tunisia</option>
+                                        <option value="11">Zambia</option>
+                                        <option value="12">Zimbabwe</option>
+                                    </select>
+                                    <div class="invalid-feedback">
+                                        Please select a country.
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="year" class="form-label">Year</label>
+                                    <input type="number" class="form-control" id="year" name="year" min="1900" max="2025" required>
+                                    <div class="invalid-feedback">
+                                        Please enter a valid year.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="exch_usd" class="form-label">Exchange Rate (USD)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
+                                        <input type="number" step="0.01" class="form-control" id="exch_usd" name="exch_usd" required>
+                                        <div class="invalid-feedback">
+                                            Please enter a valid exchange rate.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="gdp_weighted_default" class="form-label">GDP Weighted Default</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-percentage"></i></span>
+                                        <input type="number" step="0.01" class="form-control" id="gdp_weighted_default" name="gdp_weighted_default" required>
+                                        <div class="invalid-feedback">
+                                            Please enter a valid value.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label for="inflation_annual_cpi" class="form-label">Annual Inflation (CPI)</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-chart-line"></i></span>
+                                        <input type="number" step="0.01" class="form-control" id="inflation_annual_cpi" name="inflation_annual_cpi" required>
+                                        <div class="invalid-feedback">
+                                            Please enter a valid inflation rate.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="systemic_crisis" class="form-label">Systemic Crisis</label>
+                                    <select class="form-select" id="systemic_crisis" name="systemic_crisis">
+                                        <option value="0" selected>No (0)</option>
+                                        <option value="1">Yes (1)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <button type="reset" class="btn btn-outline-secondary me-md-2">
+                                    <i class="fas fa-undo me-1"></i>Reset
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-calculator me-1"></i>Predict
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-question-circle me-2"></i>How to Use This Predictor</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="accordion" id="predictionHelp">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingOne">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                        Input Parameters
+                                    </button>
+                                </h2>
+                                <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#predictionHelp">
+                                    <div class="accordion-body">
+                                        <ul>
+                                            <li><strong>Country:</strong> Select the African country you want to analyze.</li>
+                                            <li><strong>Year:</strong> Enter the year for which you want to make a prediction.</li>
+                                            <li><strong>Exchange Rate (USD):</strong> The country's currency exchange rate to USD.</li>
+                                            <li><strong>GDP Weighted Default:</strong> Default rate weighted by GDP.</li>
+                                            <li><strong>Annual Inflation (CPI):</strong> Consumer Price Index annual inflation rate.</li>
+                                            <li><strong>Systemic Crisis:</strong> Whether there's an existing systemic crisis (0=No, 1=Yes).</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="headingTwo">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                        Interpreting Results
+                                    </button>
+                                </h2>
+                                <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#predictionHelp">
+                                    <div class="accordion-body">
+                                        <p>The model provides:</p>
+                                        <ul>
+                                            <li><strong>Crisis Prediction:</strong> Binary outcome (crisis or no crisis)</li>
+                                            <li><strong>Probability:</strong> Likelihood of a banking crisis occurring</li>
+                                            <li>
+                                                <strong>Risk Level:</strong>
+                                                <ul>
+                                                    <li>Low Risk: Probability < 0.3</li>
+                                                    <li>Medium Risk: Probability 0.3-0.7</li>
+                                                    <li>High Risk: Probability > 0.7</li>
+                                                </ul>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light py-4 mt-4">
+        <div class="container text-center">
+            <p class="mb-0">© 2025 Banking Crisis Prediction System</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Form validation
+        (function () {
+            'use strict'
+            const forms = document.querySelectorAll('.needs-validation')
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+        })()
+    </script>
+</body>
+</html>

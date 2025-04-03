@@ -89,8 +89,8 @@ class MLPipeline:
             # Check for missing values
             check_missing_values(df)
             
-            # Encode categorical variables
-            df_encoded = encode_categorical_variables(df)
+            # Encode categorical 
+            df_encoded = encode_categorical(df)
             
             # Split into features and target
             target_col = 'banking_crisis'

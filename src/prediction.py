@@ -35,8 +35,8 @@ class PredictionService:
         else:
             df = data
         
-        # Encode categorical variables
-        df_encoded = encode_categorical_variables(df)
+        # Encode categorical
+        df_encoded = encode_categorical(df)
         
         # Scale numerical features
         numerical_columns = ['exch_usd', 'gdp_weighted_default', 'inflation_annual_cpi']
