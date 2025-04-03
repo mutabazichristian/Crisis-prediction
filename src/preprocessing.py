@@ -2,8 +2,8 @@ import numpy as numpy
 import matplotlib as plt
 import pandas as pd
 
-from sklearn.prepocessing import LabelEncoder, StandardScaler
-from sklearn.model_selection import train_test_split, GridSeacrhCV
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import RFE
@@ -58,7 +58,7 @@ def scale_features(dataset,columns=None):
 
 def feature_selection(X,y, n_features=8):
     select  = RFE(
-            estimator=RandomForestClassifier(random_state=42)
+            estimator=RandomForestClassifier(random_state=42),
             n_features_to_select =min(n_features, X.shape[1]),
             step=1
             )

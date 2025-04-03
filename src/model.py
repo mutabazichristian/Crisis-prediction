@@ -4,8 +4,12 @@ import numpy as np
 import pickle
 
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.ensemle import RandomForestClassifier
-from sklearn.metric import classification_report, roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, roc_auc_score
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__)) 
+save_dir = os.path.join(BASE_DIR,'..','models','banking_crisis_model.pkl')
+data_path = os.path.join(BASE_DIR,'..','data','dataset.csv')
 
 
 def train_test_data_split(X, y, test_size=0.25, random_state=42):
@@ -20,9 +24,9 @@ def tune_hyperparameters(X_train, y_train):
     print("Tuning hyperparameters")
 
     param_grid = {
-            'n_estimators': [50,100,200]
-            'max_depth': [None, 10, 20]
-            'min_samples_split': [2,5,10]
+            'n_estimators': [50,100,200],
+            'max_depth': [None, 10, 20],
+            'min_samples_split': [2,5,10],
             'min_samples_leaf': [1,2,4]
             }
 
@@ -57,7 +61,7 @@ def evaluate_model(model, X_test, y_test):
 
     return metrics
 
-def save_model(model,path='../models/random_forest_model.pkl')
+def save_model(model,path=save_dir):
     try:
         with open(path, 'rb') as file:
             model = pickle.load(file)
@@ -67,8 +71,8 @@ def save_model(model,path='../models/random_forest_model.pkl')
         print(f'Error loading model: {e}') 
         raise
 
-def get_feature_importance(mode, feature_names):
-    importances = model.feature_imoprtances_
+def get_feature_importance(model, feature_names):
+    importances = model.feature_importances_
     indices = np.argsort(importances)[::-1]
 
     feature_importance = pd.DataFrame({
@@ -78,8 +82,14 @@ def get_feature_importance(mode, feature_names):
 
     return feature_importance
 
-if __name__ = "__main__":
-    from preprocessing import load_data, preprocess_pipeline
+def train_model(X_train, y_train):
+    print('Training model...')
+    model = RandomForestClassifier(class_weight='balanced', random_state=42)
+    model.fit(X_train, y_train)
+    return model
+
+if __name__ == "__main__":
+    from src.preprocessing import load_data, preprocess_pipeline
 
     #load and preprocess
     path = '../data/dataset.csv'
