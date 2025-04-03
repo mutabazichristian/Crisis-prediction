@@ -9,22 +9,59 @@
     <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-danger">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-chart-line me-2"></i>
                 Banking Crisis Predictor
             </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/predict">Predict</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/visualize">Visualize</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/upload">Upload Data</a></li>
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <div class="container text-center mt-5">
-        <h1 class="display-4 text-danger">Oops! Something went wrong.</h1>
-        <p class="lead">We encountered an error while processing your request.</p>
-        <p>If the issue persists, please contact support or try again later.</p>
-        <a href="/" class="btn btn-primary mt-3">
-            <i class="fas fa-home me-2"></i>Return to Home
-        </a>
+    <div class="container mt-5">
+        <div class="alert alert-danger" role="alert">
+            <h4 class="alert-heading">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Error
+            </h4>
+            <p>{{ message }}</p>
+            <hr>
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Required CSV Format</h5>
+                    <p class="card-text">Your CSV file must include the following columns:</p>
+                    <ul>
+                        <li><strong>country</strong>: Country name</li>
+                        <li><strong>year</strong>: Year of observation (numeric)</li>
+                        <li><strong>exch_usd</strong>: Exchange rate to USD (numeric)</li>
+                        <li><strong>gdp_weighted_default</strong>: GDP-weighted default rate (numeric)</li>
+                        <li><strong>inflation_annual_cpi</strong>: Annual inflation rate (numeric)</li>
+                        <li><strong>systemic_crisis</strong>: Binary indicator (0 or 1)</li>
+                        <li><strong>banking_crisis</strong>: Target variable ("crisis" or "no_crisis")</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a href="/upload" class="btn btn-primary">
+                <i class="fas fa-upload me-2"></i>Try Again
+            </a>
+            <a href="/" class="btn btn-secondary">
+                <i class="fas fa-home me-2"></i>Return to Home
+            </a>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>

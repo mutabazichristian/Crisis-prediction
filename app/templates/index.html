@@ -1,127 +1,311 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banking Crisis Predictor</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', path='/css/styles.css') }}">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="/">
-                <i class="fas fa-chart-line me-2"></i>
-                Banking Crisis Predictor
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/"><i class="fas fa-home me-1"></i> Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/predict"><i class="fas fa-calculator me-1"></i> Predict</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/visualize"><i class="fas fa-chart-bar me-1"></i> Visualize</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/upload"><i class="fas fa-upload me-1"></i> Upload Data</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <header class="py-5 bg-light">
-        <div class="container">
-            <div class="row align-items-center">
-                <div class="col-md-7">
-                    <h1 class="display-4 fw-bold mb-3">Banking Crisis Prediction System</h1>
-                    <p class="lead mb-4">
-                        Using machine learning to predict and prevent banking crises in African countries through
-                        early detection of economic indicators and financial system vulnerabilities.
-                    </p>
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-start">
-                        <a href="/predict" class="btn btn-primary btn-lg px-4 me-md-2">
-                            <i class="fas fa-calculator me-2"></i>Make a Prediction
-                        </a>
-                        <a href="/visualize" class="btn btn-outline-secondary btn-lg px-4">
-                            <i class="fas fa-chart-bar me-2"></i>View Visualizations
-                        </a>
+{% block title %}Overview - Crisis Predictor{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center mb-5">
+    <h1 class="display-4 fw-bold mb-4">Banking Crisis Predictor</h1>
+    <p class="lead text-muted mb-4">Advanced machine learning model to predict and analyze banking crises in African economies.</p>
+    <div class="d-flex justify-content-center gap-3">
+        <a href="/predict" class="btn btn-primary btn-lg">
+            <i class="fas fa-calculator me-2"></i>Make Prediction
+        </a>
+        <a href="/visualize" class="btn btn-secondary btn-lg">
+            <i class="fas fa-chart-bar me-2"></i>View Analytics
+        </a>
+    </div>
+</div>
+
+<div class="row g-4 py-4">
+    <!-- Quick Stats -->
+    <div class="col-12">
+        <div class="card stats-card mb-4">
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-icon mb-2">
+                                <i class="fas fa-check-circle text-success"></i>
+                            </div>
+                            <h3 class="stat-value">{{ model_accuracy|default('95%') }}</h3>
+                            <p class="stat-label">Model Accuracy</p>
+                        </div>
                     </div>
-                </div>
-                <div class="col-md-5 d-none d-md-block">
-                    <div class="p-4 bg-white rounded shadow-lg">
-                        <h5 class="mb-3 text-center"><i class="fas fa-chart-pie me-2"></i>Current Risk Assessment</h5>
-                        <div class="chart-container" style="height: 200px;">
-                            <canvas id="riskOverviewChart"></canvas>
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-icon mb-2">
+                                <i class="fas fa-database text-primary"></i>
+                            </div>
+                            <h3 class="stat-value">{{ data_points|default('1.2K') }}</h3>
+                            <p class="stat-label">Data Points</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-icon mb-2">
+                                <i class="fas fa-globe-africa text-warning"></i>
+                            </div>
+                            <h3 class="stat-value">{{ countries|default('54') }}</h3>
+                            <p class="stat-label">Countries</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-item">
+                            <div class="stat-icon mb-2">
+                                <i class="fas fa-clock text-info"></i>
+                            </div>
+                            <h3 class="stat-value">{{ years|default('30+') }}</h3>
+                            <p class="stat-label">Years of Data</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </header>
+    </div>
 
-    <section class="py-5">
-        <div class="container">
-            <h2 class="text-center mb-4">Dashboard</h2>
-            
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="form-group">
-                        <label for="countryFilter" class="form-label">Filter by Country</label>
-                        <select id="countryFilter" class="form-select">
-                            <option value="all" selected>All Countries</option>
-                            <option value="0">Algeria</option>
-                            <option value="1">Angola</option>
-                            <option value="2">Central African Republic</option>
-                            <option value="3">Egypt</option>
-                            <option value="4">Ivory Coast</option>
-                            <option value="5">Kenya</option>
-                            <option value="6">Mauritius</option>
-                            <option value="7">Morocco</option>
-                            <option value="8">Nigeria</option>
-                            <option value="9">South Africa</option>
-                            <option value="10">Tunisia</option>
-                            <option value="11">Zambia</option>
-                            <option value="12">Zimbabwe</option>
-                        </select>
-                    </div>
+    <!-- Features -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body p-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-robot text-primary"></i>
+                </div>
+                <h3 class="card-title h5">Intelligent Predictions</h3>
+                <p class="card-text text-muted">Make accurate predictions using our advanced machine learning model trained on historical banking data.</p>
+                <a href="/predict" class="btn btn-link text-primary p-0">
+                    Try Prediction <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body p-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-chart-line text-success"></i>
+                </div>
+                <h3 class="card-title h5">Real-time Analytics</h3>
+                <p class="card-text text-muted">Explore interactive visualizations and gain insights into economic indicators and crisis patterns.</p>
+                <a href="/visualize" class="btn btn-link text-primary p-0">
+                    View Analytics <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body p-4">
+                <div class="feature-icon mb-3">
+                    <i class="fas fa-sync text-warning"></i>
+                </div>
+                <h3 class="card-title h5">Continuous Learning</h3>
+                <p class="card-text text-muted">Upload new data to retrain the model and improve its prediction accuracy over time.</p>
+                <a href="/upload" class="btn btn-link text-primary p-0">
+                    Upload Data <i class="fas fa-arrow-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Latest Predictions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="card-title h5 mb-0">Recent Predictions</h3>
+                    <a href="/predict" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i>New Prediction
+                    </a>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Country</th>
+                                <th>Year</th>
+                                <th>Prediction</th>
+                                <th>Confidence</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prediction in recent_predictions|default([
+                                {'country': 'Nigeria', 'year': 2023, 'prediction': 'No Crisis', 'confidence': 92, 'date': '2024-04-03'},
+                                {'country': 'Kenya', 'year': 2023, 'prediction': 'Crisis', 'confidence': 87, 'date': '2024-04-03'},
+                                {'country': 'South Africa', 'year': 2023, 'prediction': 'No Crisis', 'confidence': 95, 'date': '2024-04-02'}
+                            ]) %}
+                            <tr>
+                                <td>{{ prediction.country }}</td>
+                                <td>{{ prediction.year }}</td>
+                                <td>
+                                    <span class="status-badge {% if prediction.prediction == 'Crisis' %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+                                        {{ prediction.prediction }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1" style="height: 6px;">
+                                            <div class="progress-bar {% if prediction.prediction == 'Crisis' %}bg-danger{% else %}bg-success{% endif %}" 
+                                                 role="progressbar" 
+                                                 style="width: {{ prediction.confidence }}%" 
+                                                 aria-valuenow="{{ prediction.confidence }}" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <span class="ms-2 small">{{ prediction.confidence }}%</span>
+                                    </div>
+                                </td>
+                                <td class="text-muted">{{ prediction.date }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            
-            <div class="row g-4 mb-4">
-                <div class="col-md-3">
-                    <div class="card shadow stat-card">
-                        <div class="card-body text-center">
-                            <div class="stat-value" id="totalPredictions">1245</div>
-                            <div class="stat-label">Total Predictions</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card shadow stat-card">
-                        <div class="card-body text-center">
-                            <div class="stat-value" id="crisisDetected">187</div>
-                            <div class="stat-label">Crisis Detected</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card shadow stat-card">
-                        <div class="card-body text-center">
-                            <div class="stat-value" id="averageProbability">31.0%</div>
-                            <div class="stat-label">Avg. Crisis Probability</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card shadow stat-card">
-                        <div class="card-body text-center">
-                            <div class="stat-value" id="modelAccuracy">89.0%</div>
-                            <div class="stat-label">Model Accuracy
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.hero-section {
+    padding: 4rem 0;
+    background: linear-gradient(180deg, var(--light) 0%, rgba(255, 255, 255, 0) 100%);
+    border-radius: 24px;
+    margin: -3rem -1rem 0;
+    position: relative;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
+}
+
+.stats-card {
+    background: linear-gradient(135deg, var(--card-bg), rgba(255, 255, 255, 0.9));
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1rem;
+}
+
+.stat-icon {
+    font-size: 2rem;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    background: linear-gradient(135deg, var(--dark) 0%, var(--gray) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stat-label {
+    color: var(--gray);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.feature-icon {
+    font-size: 2rem;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.progress {
+    background-color: var(--gray-light);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 1s ease;
+}
+
+.table {
+    font-size: 0.95rem;
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--gray);
+    border-top: none;
+}
+
+.table td {
+    padding: 1rem 0.75rem;
+}
+
+.status-badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 3rem 1rem;
+        margin: -2rem -1rem 0;
+    }
+    
+    .stat-value {
+        font-size: 1.5rem;
+    }
+    
+    .table-responsive {
+        margin: 0 -1rem;
+        padding: 0 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Animate stats on scroll
+function animateStats() {
+    const stats = document.querySelectorAll('.stat-value');
+    stats.forEach(stat => {
+        const value = stat.innerText;
+        if (value.endsWith('%')) {
+            const number = parseInt(value);
+            let current = 0;
+            const increment = number / 50;
+            const timer = setInterval(() => {
+                current += increment;
+                if (current >= number) {
+                    clearInterval(timer);
+                    current = number;
+                }
+                stat.innerText = Math.round(current) + '%';
+            }, 20);
+        }
+    });
+}
+
+// Animate on page load
+document.addEventListener('DOMContentLoaded', animateStats);
+</script>
+{% endblock %}

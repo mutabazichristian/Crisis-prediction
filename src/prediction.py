@@ -2,10 +2,12 @@ import pandas as pd
 import numpy as np
 import pickle
 import os 
+import logging
 
 from src.preprocessing import encode_categorical, scale_features
 
 BASE_DIR= os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+logger = logging.getLogger(__name__)
 
 class PredictionService:
     def __init__(self, model_path=os.path.join(BASE_DIR,'..','models','banking_crisis_model.pkl'),
@@ -28,35 +30,48 @@ class PredictionService:
 
     def preprocess_input(self, data):
         """Preprocess input data for prediction"""
-        if isinstance(data, dict):
-            df = pd.DataFrame([data])
-        elif isinstance(data, list) and all(isinstance(item, dict) for item in data):
-            df = pd.DataFrame(data)
-        else:
-            df = data
-        
-        # Encode categorical
-        df_encoded = encode_categorical(df)
-        
-        # Scale numerical features
-        numerical_columns = ['exch_usd', 'gdp_weighted_default', 'inflation_annual_cpi']
-        df_scaled = df_encoded.copy()
-        
-        # Get columns that are both in the dataframe and need scaling
-        columns_to_scale = [col for col in numerical_columns if col in df_scaled.columns]
-        if columns_to_scale:
-            # Use the scaler fitted on training data
-            df_scaled[columns_to_scale] = self.scaler.transform(df_scaled[columns_to_scale])
-        
-        # Select only the features used by the model
-        # Handle the case where some features might be missing
-        missing_features = [f for f in self.selected_features if f not in df_scaled.columns]
-        if missing_features:
-            print(f"Warning: Missing features: {missing_features}")
-            for feature in missing_features:
-                df_scaled[feature] = 0  # Add missing features with default value
-        
-        return df_scaled[self.selected_features]
+        try:
+            if isinstance(data, dict):
+                df = pd.DataFrame([data])
+            elif isinstance(data, list) and all(isinstance(item, dict) for item in data):
+                df = pd.DataFrame(data)
+            else:
+                df = data
+            
+            # Encode categorical
+            df_encoded = encode_categorical(df)
+            
+            # Scale numerical features
+            numerical_columns = ['exch_usd', 'gdp_weighted_default', 'inflation_annual_cpi']
+            df_scaled = df_encoded.copy()
+            
+            # Get columns that are both in the dataframe and need scaling
+            columns_to_scale = [col for col in numerical_columns if col in df_scaled.columns]
+            if columns_to_scale:
+                # Use the scaler fitted on training data
+                df_scaled[columns_to_scale] = self.scaler.transform(df_scaled[columns_to_scale])
+            
+            # Select only the features used by the model
+            # Handle the case where some features might be missing
+            missing_features = [f for f in self.selected_features if f not in df_scaled.columns]
+            if missing_features:
+                logger.warning(f"Missing features: {missing_features}")
+                for feature in missing_features:
+                    df_scaled[feature] = 0  # Add missing features with default value
+            
+            # Ensure all required features are present and in the correct order
+            result = pd.DataFrame()
+            for feature in self.selected_features:
+                if feature in df_scaled.columns:
+                    result[feature] = df_scaled[feature]
+                else:
+                    result[feature] = 0
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error preprocessing input: {str(e)}")
+            raise ValueError(f"Error preprocessing input data: {str(e)}")
     
     def predict(self, data):
         """Make prediction for a single data point or batch"""

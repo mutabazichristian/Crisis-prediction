@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Model Retraining - Crisis Predictor{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card">
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <h2 class="card-title mb-3">Model Retraining</h2>
+                <p class="text-muted">File: {{ filename }}</p>
+            </div>
+
+            <!-- Training Status -->
+            <div id="training" class="text-center mb-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted mb-0">Training in progress...</p>
+            </div>
+
+            <!-- Success State -->
+            <div id="success" class="d-none">
+                <div class="alert alert-success text-center mb-4">
+                    <h4 class="alert-heading mb-2">Training Complete!</h4>
+                    <p class="mb-0">The model has been successfully updated.</p>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">ROC AUC Score</h6>
+                                <h3 class="card-title mb-0" id="rocAuc">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <h6 class="card-subtitle mb-2 text-muted">Accuracy</h6>
+                                <h3 class="card-title mb-0" id="accuracy">-</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="error" class="d-none">
+                <div class="alert alert-danger text-center">
+                    <h4 class="alert-heading mb-2">Training Failed</h4>
+                    <p id="errorMessage" class="mb-0"></p>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="text-center mt-4">
+                <a href="/" class="btn btn-outline-primary me-2">Return Home</a>
+                <a href="/predict" class="btn btn-primary">Make Predictions</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const training = document.getElementById('training');
+    const success = document.getElementById('success');
+    const error = document.getElementById('error');
+    const errorMessage = document.getElementById('errorMessage');
+    const rocAuc = document.getElementById('rocAuc');
+    const accuracy = document.getElementById('accuracy');
+
+    async function checkStatus() {
+        try {
+            const response = await fetch(`/api/training-status?filename={{ filename }}&t=${Date.now()}`);
+            const data = await response.json();
+            console.log('Status check response:', data);  // Debug log
+            
+            switch (data.status) {
+                case 'completed':
+                    console.log('Training completed');  // Debug log
+                    // Show success state
+                    training.classList.add('d-none');
+                    success.classList.remove('d-none');
+                    
+                    // Update metrics
+                    if (data.metrics) {
+                        rocAuc.textContent = (data.metrics.roc_auc * 100).toFixed(1) + '%';
+                        accuracy.textContent = (data.metrics.accuracy * 100).toFixed(1) + '%';
+                    }
+                    
+                    // Stop polling
+                    clearInterval(pollInterval);
+                    break;
+                    
+                case 'error':
+                    console.log('Training error:', data.error);  // Debug log
+                    // Show error state
+                    training.classList.add('d-none');
+                    error.classList.remove('d-none');
+                    errorMessage.textContent = data.error || 'An unknown error occurred';
+                    
+                    // Stop polling
+                    clearInterval(pollInterval);
+                    break;
+                    
+                case 'not_found':
+                    console.log('Training status not found');  // Debug log
+                    break;
+            }
+            
+        } catch (error) {
+            console.error('Error checking status:', error);
+        }
+    }
+
+    // Start polling
+    const pollInterval = setInterval(checkStatus, 100);  // Poll every 100ms
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+.card {
+    border: none;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    border-radius: 15px;
+}
+
+.alert {
+    border: none;
+    border-radius: 10px;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+</style>
+{% endblock %} 

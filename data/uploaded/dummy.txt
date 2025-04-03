@@ -1,0 +1,6 @@
+country_number,year,systemic_crisis,exch_usd,domestic_debt_in_default,sovereign_external_debt_default,gdp_weighted_default,inflation_annual_cpi,independence,currency_crises,inflation_crises
+1,1870,1,-0.386713,0,0,-0.147006,-0.030863,0,0,0
+1,1871,0,-0.386708,0,0,-0.147006,-0.030848,0,0,0
+1,1872,0,-0.386712,0,0,-0.147006,-0.030874,0,0,0
+70,2009,1,2.797088,1,1,-0.147006,-0.030880,1,1,0
+70,2010,0,3.007099,1,1,-0.147006,-0.030864,1,0,0

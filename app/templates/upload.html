@@ -30,11 +30,28 @@
     </nav>
 
     <div class="container mt-5">
-        <h2 class="mb-4">Upload Data</h2>
-        <form action="/upload" method="post" enctype="multipart/form-data">
+        <h2 class="mb-4">Upload Training Data</h2>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Data Requirements</h5>
+                <p class="card-text">Please ensure your CSV file contains the following columns:</p>
+                <ul>
+                    <li>country: Country name</li>
+                    <li>year: Year of observation</li>
+                    <li>exch_usd: Exchange rate to USD</li>
+                    <li>gdp_weighted_default: GDP-weighted default rate</li>
+                    <li>inflation_annual_cpi: Annual inflation rate (CPI)</li>
+                    <li>systemic_crisis: Binary indicator (0/1)</li>
+                    <li>banking_crisis: Target variable (crisis/no_crisis)</li>
+                </ul>
+            </div>
+        </div>
+
+        <form action="/upload" method="post" enctype="multipart/form-data" class="mt-4">
             <div class="mb-3">
-                <label for="file" class="form-label">Select file to upload</label>
-                <input type="file" class="form-control" id="file" name="file" accept=".csv, .xlsx, .txt, .pkl" required>
+                <label for="file" class="form-label">Select CSV file to upload</label>
+                <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
+                <div class="form-text">Only CSV files are supported.</div>
             </div>
             <button type="submit" class="btn btn-primary">
                 <i class="fas fa-upload me-2"></i>Upload File
