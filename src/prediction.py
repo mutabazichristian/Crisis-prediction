@@ -3,6 +3,7 @@ import numpy as np
 import pickle
 import os 
 import logging
+import joblib
 
 from src.preprocessing import encode_categorical, scale_features
 
@@ -22,11 +23,22 @@ class PredictionService:
 
     def _load_pickle(self,path):
         try:
-            with open(path,'rb') as file:
-                return pickle.load(file)
+            # Try to import numpy first to ensure it's properly initialized
+            import numpy as np
+            
+            # Try joblib first (more robust for scikit-learn objects)
+            try:
+                return joblib.load(path)
+            except Exception as joblib_error:
+                logger.warning(f"Joblib load failed, trying pickle: {joblib_error}")
+                
+                # Fallback to pickle
+                with open(path,'rb') as file:
+                    return pickle.load(file)
         except Exception as e:
-            print(f'Error loading {path}: {e}')
-            raise
+            error_msg = f'Error loading {path}: {str(e)}'
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
 
     def preprocess_input(self, data):
         """Preprocess input data for prediction"""
@@ -103,30 +115,33 @@ class PredictionService:
 
 def save_prediction_artifacts(model, scaler, selected_features, output_dir=os.path.join(BASE_DIR,'..','models')):
     """Save model and preprocessing artifacts for prediction"""
-    os.makedirs(output_dir, exist_ok=True)
-    
-    # Save model
-    model_path = os.path.join(output_dir, 'banking_crisis_model.pkl')
-    with open(model_path, 'wb') as f:
-        pickle.dump(model, f)
-    
-    # Save scaler
-    scaler_path = os.path.join(output_dir, 'scaler.pkl')
-    with open(scaler_path, 'wb') as f:
-        pickle.dump(scaler, f)
-    
-    # Save selected features
-    features_path = os.path.join(output_dir, 'selected_features.pkl')
-    with open(features_path, 'wb') as f:
-        pickle.dump(selected_features, f)
-    
-    print(f"Prediction artifacts saved to {output_dir}")
-    
-    return {
-        'model_path': model_path,
-        'scaler_path': scaler_path,
-        'features_path': features_path
-    }
+    try:
+        import joblib
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Save model using joblib
+        model_path = os.path.join(output_dir, 'banking_crisis_model.pkl')
+        joblib.dump(model, model_path)
+        
+        # Save scaler using joblib
+        scaler_path = os.path.join(output_dir, 'scaler.pkl')
+        joblib.dump(scaler, scaler_path)
+        
+        # Save selected features using joblib
+        features_path = os.path.join(output_dir, 'selected_features.pkl')
+        joblib.dump(selected_features, features_path)
+        
+        logger.info(f"Prediction artifacts saved to {output_dir}")
+        
+        return {
+            'model_path': model_path,
+            'scaler_path': scaler_path,
+            'features_path': features_path
+        }
+    except Exception as e:
+        error_msg = f"Error saving prediction artifacts: {str(e)}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg)
 
 if __name__ == "__main__":
     # Test prediction
