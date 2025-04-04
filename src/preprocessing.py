@@ -210,21 +210,29 @@ def scale_features(df: pd.DataFrame, columns_to_scale: list, handle_outliers: bo
 def feature_selection(X: pd.DataFrame, y: pd.Series, n_features: int) -> tuple:
     """Select best features using SelectKBest"""
     try:
-        # Ensure all column names are strings
-        X.columns = X.columns.astype(str)
+        # Create a copy to avoid modifying the original DataFrame
+        X = X.copy()
+        
+        # Convert all column names to plain strings (no str_ type)
+        X.columns = [str(col) for col in X.columns]
         
         # Separate numeric and categorical columns
-        numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns if str(col) != 'country']
+        numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns if col != 'country']
         categorical_cols = ['country']  # We always want to keep the country column
         
         if len(numeric_cols) == 0:
             logger.warning("No numeric features available for selection")
             return X, X.columns.tolist(), None
-            
+        
         # Apply feature selection only on numeric columns
         selector = SelectKBest(score_func=f_classif, k=min(n_features, len(numeric_cols)))
-        X_numeric_selected = selector.fit_transform(X[numeric_cols], y)
-        selected_numeric_features = list(np.array(numeric_cols)[selector.get_support()])
+        X_numeric = X[numeric_cols].copy()
+        
+        # Ensure numeric column names are strings
+        X_numeric.columns = [str(col) for col in X_numeric.columns]
+        
+        X_numeric_selected = selector.fit_transform(X_numeric, y)
+        selected_numeric_features = [str(col) for col in np.array(numeric_cols)[selector.get_support()]]
         
         # Log feature scores for numeric features
         feature_scores = pd.DataFrame({
@@ -235,20 +243,29 @@ def feature_selection(X: pd.DataFrame, y: pd.Series, n_features: int) -> tuple:
         
         # Combine selected numeric features with categorical features
         selected_features = categorical_cols + selected_numeric_features
+        
+        # Create the final selected features DataFrame
         X_selected = pd.DataFrame(index=X.index)
         
         # Add categorical columns first
         for col in categorical_cols:
             X_selected[str(col)] = X[col]
-            
+        
         # Add selected numeric features
-        X_selected = pd.concat([
-            X_selected,
-            pd.DataFrame(X_numeric_selected, columns=[str(f) for f in selected_numeric_features], index=X.index)
-        ], axis=1)
-            
+        numeric_df = pd.DataFrame(
+            X_numeric_selected, 
+            columns=[str(f) for f in selected_numeric_features],
+            index=X.index
+        )
+        X_selected = pd.concat([X_selected, numeric_df], axis=1)
+        
+        # Final check to ensure all column names are strings
+        X_selected.columns = [str(col) for col in X_selected.columns]
+        selected_features = [str(f) for f in selected_features]
+        
         logger.info(f"Selected features: {selected_features}")
         return X_selected, selected_features, selector
+        
     except Exception as e:
         logger.error(f"Error in feature selection: {str(e)}")
         raise
@@ -265,20 +282,29 @@ def preprocess_pipeline(df: pd.DataFrame, target_col: str = 'banking_crisis', n_
         # Engineer features
         df_engineered = engineer_features(df_clean)
         
-        # Encode categorical variables first
+        # Convert all column names to strings early in the pipeline
+        df_engineered.columns = [str(col) for col in df_engineered.columns]
+        
+        # Encode categorical variables
         df_encoded = encode_categorical(df_engineered)
+        
+        # Ensure column names are strings after encoding
+        df_encoded.columns = [str(col) for col in df_encoded.columns]
         
         # Split features and target
         X = df_encoded.drop(columns=[target_col])
         y = df_encoded[target_col]
         
-        # Convert all column names to strings
-        X.columns = X.columns.astype(str)
+        # Convert all column names to strings again after split
+        X.columns = [str(col) for col in X.columns]
         
         # Scale only numerical features, excluding 'country' column
         numerical_columns = [col for col in X.select_dtypes(include=[np.number]).columns if col != 'country']
         X_scaled = X.copy()
+        
         if numerical_columns:
+            # Ensure numerical column names are strings
+            numerical_columns = [str(col) for col in numerical_columns]
             X_scaled_nums, scaler = scale_features(X, numerical_columns, handle_outliers=True)
             X_scaled[numerical_columns] = X_scaled_nums[numerical_columns]
         else:
@@ -295,19 +321,19 @@ def preprocess_pipeline(df: pd.DataFrame, target_col: str = 'banking_crisis', n_
                         X_scaled[col] = X_scaled[col].fillna(X_scaled[col].mode()[0])
         
         # Ensure all column names are strings before feature selection
-        X_scaled.columns = X_scaled.columns.astype(str)
+        X_scaled.columns = [str(col) for col in X_scaled.columns]
         
         # Select best features
         X_selected, selected_features, selector = feature_selection(X_scaled, y, n_features)
         
-        # Ensure selected feature names are strings
-        X_selected.columns = X_selected.columns.astype(str)
+        # Final verification of string column names
+        X_selected.columns = [str(col) for col in X_selected.columns]
         selected_features = [str(f) for f in selected_features]
         
         # Verify no NaN values in final output
         assert not X_selected.isna().any().any(), "NaN values found in final preprocessed data"
         
-        logger.info("Preprocessing pipeline completed successfully")
+        logger.info("Preprocessing pipeline completed successfully!")
         return X_selected, y, scaler, selected_features
     except Exception as e:
         logger.error(f"Error in preprocessing pipeline: {str(e)}")
