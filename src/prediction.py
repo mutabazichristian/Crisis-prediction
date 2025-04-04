@@ -4,6 +4,7 @@ import pickle
 import os 
 import logging
 import joblib
+import warnings
 
 from src.preprocessing import encode_categorical, scale_features
 
@@ -14,31 +15,49 @@ class PredictionService:
     def __init__(self, model_path=os.path.join(BASE_DIR,'..','models','banking_crisis_model.pkl'),
                  scaler_path=os.path.join(BASE_DIR,'..','models','scaler.pkl'),
                  selected_features_path=os.path.join(BASE_DIR,'..','models','selected_features.pkl')):
+        
+        # Suppress warnings during model loading
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.model = self._load_pickle(model_path)
+            self.scaler = self._load_pickle(scaler_path)
+            self.selected_features = self._load_pickle(selected_features_path)
 
-        self.model = self._load_pickle(model_path)
-        self.scaler = self._load_pickle(scaler_path)
-        self.selected_features = self._load_pickle(selected_features_path)
-
-        print(f'Prediction service initialized with {len(self.selected_features)} features')
+        if all([self.model, self.scaler, self.selected_features]):
+            logger.info(f'Prediction service initialized with {len(self.selected_features)} features')
+        else:
+            logger.error('Failed to initialize one or more components')
 
     def _load_pickle(self,path):
+        """Load a pickled object with multiple fallback options"""
         try:
-            # Try to import numpy first to ensure it's properly initialized
+            # Ensure numpy is properly initialized
             import numpy as np
             
-            # Try joblib first (more robust for scikit-learn objects)
-            try:
-                return joblib.load(path)
-            except Exception as joblib_error:
-                logger.warning(f"Joblib load failed, trying pickle: {joblib_error}")
-                
-                # Fallback to pickle
-                with open(path,'rb') as file:
-                    return pickle.load(file)
-        except Exception as e:
-            error_msg = f'Error loading {path}: {str(e)}'
+            methods = [
+                ('joblib', lambda p: joblib.load(p)),
+                ('pickle', lambda p: pickle.load(open(p, 'rb'))),
+                ('joblib_memory_map', lambda p: joblib.load(p, mmap_mode='r')),
+            ]
+            
+            last_error = None
+            for method_name, loader in methods:
+                try:
+                    logger.info(f"Attempting to load {path} using {method_name}")
+                    return loader(path)
+                except Exception as e:
+                    last_error = e
+                    logger.warning(f"{method_name} load failed for {path}: {str(e)}")
+                    continue
+            
+            error_msg = f'All loading methods failed for {path}. Last error: {str(last_error)}'
             logger.error(error_msg)
-            raise RuntimeError(error_msg)
+            return None
+            
+        except Exception as e:
+            error_msg = f'Error in load_pickle for {path}: {str(e)}'
+            logger.error(error_msg)
+            return None
 
     def preprocess_input(self, data):
         """Preprocess input data for prediction"""
@@ -119,19 +138,22 @@ def save_prediction_artifacts(model, scaler, selected_features, output_dir=os.pa
         import joblib
         os.makedirs(output_dir, exist_ok=True)
         
-        # Save model using joblib
+        # Save model using both joblib and pickle for redundancy
         model_path = os.path.join(output_dir, 'banking_crisis_model.pkl')
-        joblib.dump(model, model_path)
+        joblib.dump(model, model_path, compress=3)
+        with open(model_path + '.backup', 'wb') as f:
+            pickle.dump(model, f, protocol=4)  # Use protocol 4 for better compatibility
         
         # Save scaler using joblib
         scaler_path = os.path.join(output_dir, 'scaler.pkl')
-        joblib.dump(scaler, scaler_path)
+        joblib.dump(scaler, scaler_path, compress=3)
         
         # Save selected features using joblib
         features_path = os.path.join(output_dir, 'selected_features.pkl')
-        joblib.dump(selected_features, features_path)
+        joblib.dump(selected_features, features_path, compress=3)
         
         logger.info(f"Prediction artifacts saved to {output_dir}")
+        logger.info(f"Model saved with backup copy at {model_path}.backup")
         
         return {
             'model_path': model_path,
