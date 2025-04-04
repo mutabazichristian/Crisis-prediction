@@ -140,16 +140,35 @@ def encode_categorical(df: pd.DataFrame) -> pd.DataFrame:
     try:
         df = df.copy()
         
+        # Define fixed country mapping
+        COUNTRY_MAPPING = {
+            "Algeria": 0,
+            "Angola": 1,
+            "Central African Republic": 2,
+            "Egypt": 3,
+            "Ivory Coast": 4,
+            "Kenya": 5,
+            "Mauritius": 6,
+            "Morocco": 7,
+            "Nigeria": 8,
+            "South Africa": 9,
+            "Tunisia": 10,
+            "Zambia": 11,
+            "Zimbabwe": 12
+        }
+        
         # Encode banking crisis column if it exists
         if 'banking_crisis' in df.columns:
             df['banking_crisis'] = df['banking_crisis'].replace(['no_crisis', 'crisis'], [0, 1])
         
-        # Create country mapping if not exists
-        if 'country' in df.columns and not df['country'].dtype.kind in 'iu':
-            countries = df['country'].unique()
-            country_mapping = {country: idx for idx, country in enumerate(sorted(countries))}
-            df['country'] = df['country'].map(country_mapping)
-            logger.info(f"Country mapping created for {len(countries)} countries")
+        # Use fixed country mapping
+        if 'country' in df.columns:
+            try:
+                df['country'] = df['country'].map(COUNTRY_MAPPING)
+                logger.info(f"Countries encoded using fixed mapping")
+            except Exception as e:
+                logger.error(f"Error mapping country values: {str(e)}")
+                raise ValueError(f"Invalid country values found. Valid values are: {list(COUNTRY_MAPPING.keys())}")
         
         logger.info("Categorical variables encoded successfully")
         return df
@@ -190,9 +209,9 @@ def scale_features(df: pd.DataFrame, columns_to_scale: list, handle_outliers: bo
 def feature_selection(X: pd.DataFrame, y: pd.Series, n_features: int) -> tuple:
     """Select best features using SelectKBest"""
     try:
-        # Only select from numeric columns
-        numeric_cols = X.select_dtypes(include=[np.number]).columns
-        categorical_cols = X.select_dtypes(exclude=[np.number]).columns
+        # Separate numeric and categorical columns
+        numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns if col != 'country']
+        categorical_cols = ['country']  # We always want to keep the country column
         
         if len(numeric_cols) == 0:
             logger.warning("No numeric features available for selection")
@@ -201,7 +220,7 @@ def feature_selection(X: pd.DataFrame, y: pd.Series, n_features: int) -> tuple:
         # Apply feature selection only on numeric columns
         selector = SelectKBest(score_func=f_classif, k=min(n_features, len(numeric_cols)))
         X_numeric_selected = selector.fit_transform(X[numeric_cols], y)
-        selected_numeric_features = numeric_cols[selector.get_support()].tolist()
+        selected_numeric_features = list(np.array(numeric_cols)[selector.get_support()])
         
         # Log feature scores for numeric features
         feature_scores = pd.DataFrame({
@@ -211,10 +230,18 @@ def feature_selection(X: pd.DataFrame, y: pd.Series, n_features: int) -> tuple:
         logger.info(f"Feature importance scores:\n{feature_scores}")
         
         # Combine selected numeric features with categorical features
-        selected_features = selected_numeric_features + categorical_cols.tolist()
-        X_selected = pd.DataFrame(X_numeric_selected, columns=selected_numeric_features, index=X.index)
+        selected_features = categorical_cols + selected_numeric_features
+        X_selected = pd.DataFrame(index=X.index)
+        
+        # Add categorical columns first
         for col in categorical_cols:
             X_selected[col] = X[col]
+            
+        # Add selected numeric features
+        X_selected = pd.concat([
+            X_selected,
+            pd.DataFrame(X_numeric_selected, columns=selected_numeric_features, index=X.index)
+        ], axis=1)
             
         logger.info(f"Selected features: {selected_features}")
         return X_selected, selected_features, selector
@@ -234,16 +261,21 @@ def preprocess_pipeline(df: pd.DataFrame, target_col: str = 'banking_crisis', n_
         # Engineer features
         df_engineered = engineer_features(df_clean)
         
-        # Encode categorical variables
+        # Encode categorical variables first
         df_encoded = encode_categorical(df_engineered)
         
         # Split features and target
         X = df_encoded.drop(columns=[target_col])
         y = df_encoded[target_col]
         
-        # Scale numerical features
-        numerical_columns = X.select_dtypes(include=[np.number]).columns.tolist()
-        X_scaled, scaler = scale_features(X, numerical_columns, handle_outliers=True)
+        # Scale only numerical features, excluding 'country' column
+        numerical_columns = [col for col in X.select_dtypes(include=[np.number]).columns if col != 'country']
+        X_scaled = X.copy()
+        if numerical_columns:
+            X_scaled_nums, scaler = scale_features(X, numerical_columns, handle_outliers=True)
+            X_scaled[numerical_columns] = X_scaled_nums[numerical_columns]
+        else:
+            scaler = None
         
         # Final NaN check before feature selection
         if X_scaled.isna().any().any():
