@@ -23,10 +23,29 @@ class PredictionService:
             self.scaler = self._load_pickle(scaler_path)
             self.selected_features = self._load_pickle(selected_features_path)
 
-        if all([self.model, self.scaler, self.selected_features]):
+        # Check if all components are loaded
+        self.is_ready = all([self.model, self.scaler, self.selected_features])
+        
+        if self.is_ready:
             logger.info(f'Prediction service initialized with {len(self.selected_features)} features')
         else:
             logger.error('Failed to initialize one or more components')
+            # Try to retrain the model
+            try:
+                logger.info("Attempting to retrain model...")
+                from src.retrain import main as retrain_model
+                retrain_model()
+                # Try loading again
+                self.model = self._load_pickle(model_path)
+                self.scaler = self._load_pickle(scaler_path)
+                self.selected_features = self._load_pickle(selected_features_path)
+                self.is_ready = all([self.model, self.scaler, self.selected_features])
+                if self.is_ready:
+                    logger.info("Successfully retrained and loaded model!")
+                else:
+                    logger.error("Failed to load model even after retraining")
+            except Exception as e:
+                logger.error(f"Failed to retrain model: {str(e)}")
 
     def _load_pickle(self,path):
         """Load a pickled object with multiple fallback options"""
@@ -106,6 +125,9 @@ class PredictionService:
     
     def predict(self, data):
         """Make prediction for a single data point or batch"""
+        if not self.is_ready:
+            raise RuntimeError("Prediction service is not properly initialized")
+            
         # Preprocess input data
         X = self.preprocess_input(data)
         

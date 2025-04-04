@@ -11,15 +11,19 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Create necessary directories
+RUN mkdir -p app/data/uploads models data
+
+# Copy the data file first
+COPY data/dataset.csv data/
+
 # Copy the rest of the application
 COPY . .
 COPY templates/ /app/templates/
 
-# Create necessary directories
-RUN mkdir -p app/data/uploads models
-
-# Train the model in the container to ensure environment consistency
-RUN python -m src.retrain
+# Ensure proper permissions and train the model
+RUN chmod +x src/retrain.py && \
+    python -m src.retrain
 
 EXPOSE 8000
 

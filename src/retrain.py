@@ -20,8 +20,14 @@ def main():
         
         # Load and preprocess data
         logger.info("Loading and preprocessing data...")
-        path = "data/african_crises2.csv"
-        dataset = load_data(path)
+        data_file = "dataset.csv"
+        data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", data_file)
+        
+        if not os.path.exists(data_path):
+            raise FileNotFoundError(f"Data file not found at {data_path}")
+            
+        logger.info(f"Loading data from {data_path}")
+        dataset = load_data(data_path)
         X, y, scaler, selected_features = preprocess_pipeline(dataset)
         
         # Initialize trainer
@@ -42,6 +48,7 @@ def main():
         # Save artifacts with new robust saving mechanism
         logger.info("Saving model artifacts...")
         output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'models')
+        os.makedirs(output_dir, exist_ok=True)
         artifacts = save_prediction_artifacts(model, scaler, selected_features, output_dir)
         
         logger.info(f"Model training complete! Artifacts saved to {output_dir}")
