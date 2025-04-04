@@ -106,15 +106,18 @@ training_threads = {}
 def update_training_status(filename: str, status: str, step: int = 0, error: str = None, metrics: dict = None):
     """Update training status with thread safety."""
     with status_lock:
+        current_status = training_status.get(filename, {})
         training_status[filename] = {
             "status": status,
             "step": step,
             "error": error,
             "metrics": metrics,
             "timestamp": time.time(),
-            "last_update": datetime.now().isoformat()
+            "last_update": datetime.now().isoformat(),
+            "completed": status in ["completed", "error"],
+            "previous_status": current_status.get("status")
         }
-        logger.info(f"Status updated for {filename}: status={status}, step={step}")
+        logger.info(f"Status updated for {filename}: status={status}, step={step}, completed={status in ['completed', 'error']}")
 
 def run_training(filename: str):
     """Run the training pipeline for a given file."""
@@ -166,10 +169,19 @@ def run_training(filename: str):
 @app.get("/api/training-status")
 async def get_training_status(filename: str):
     """Get the current training status."""
-    logger.debug(f"Getting status for {filename}. Current status: {training_status.get(filename)}")
     if filename not in training_status:
-        return {"status": "not_found"}
-    return training_status[filename]
+        raise HTTPException(status_code=404, detail="Training status not found")
+    
+    status = training_status[filename]
+    
+    # Check for timeout (5 minutes without updates)
+    if status["status"] not in ["completed", "error"]:
+        last_update = datetime.fromisoformat(status["last_update"])
+        if (datetime.now() - last_update).total_seconds() > 300:
+            update_training_status(filename, "error", error="Training timeout - no updates for 5 minutes")
+            status = training_status[filename]
+    
+    return status
 
 # Routes
 @app.get("/", response_class=HTMLResponse)

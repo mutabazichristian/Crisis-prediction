@@ -176,55 +176,42 @@ class MLPipeline:
             
             # Use the parallel backend context for all parallel operations
             with parallel_backend_context():
-                # Split data
-                X_train, X_test, y_train, y_test = self.model_trainer.train_test_split(X, y)
-                logger.info("Data split completed")
-                
-                # Train model with fixed parameters
-                self.model_trainer.feature_names = self.selected_features
-                self.model = self.model_trainer.train_model(X_train, y_train)
-                logger.info("Model training completed")
-                
-                # Evaluate model
-                metrics = self.model_trainer.evaluate_model(X_test, y_test)
-                logger.info(f"Model evaluation completed. Metrics: {metrics}")
-                
-                # Generate learning curves
-                learning_curves = self.model_trainer.plot_learning_curves(X, y)
-                logger.info("Learning curves generated")
-                
-                # Get feature importance
-                feature_importance = self.model_trainer.get_feature_importance(self.selected_features)
-                logger.info("Feature importance calculated")
-            
-            # Save model with metadata
-            metadata = {
-                'data_path': data_path,
-                'preprocessing_params': {
-                    'n_features': len(self.selected_features),
-                    'features': self.selected_features
-                },
-                'learning_curves': learning_curves,
-                'feature_importance': feature_importance.to_dict()
-            }
-            self.model_trainer.save_model(metadata=metadata)
-            logger.info("Model and artifacts saved")
-            
-            return {
-                "status": "success",
-                "metrics": metrics,
-                "feature_importance": feature_importance.to_dict(),
-                "learning_curves": learning_curves
-            }
-            
+                try:
+                    # Split data
+                    X_train, X_test, y_train, y_test = self.model_trainer.train_test_split(X, y)
+                    logger.info(f"Training data shape: {X_train.shape}, Testing data shape: {X_test.shape}")
+                    logger.info("Data split completed")
+                    
+                    # Train model with fixed parameters
+                    self.model_trainer.feature_names = self.selected_features
+                    self.model = self.model_trainer.train_model(X_train, y_train)
+                    logger.info("Model training completed")
+                    
+                    # Evaluate model
+                    metrics = self.model_trainer.evaluate_model(X_test, y_test)
+                    logger.info(f"Model evaluation completed. Metrics: {metrics}")
+                    
+                    # Save model and artifacts immediately after successful training
+                    self.save_model()
+                    logger.info("Model and artifacts saved successfully")
+                    
+                    return {
+                        "status": "success",
+                        "metrics": metrics,
+                        "feature_importance": self.model_trainer.get_feature_importance(self.selected_features),
+                        "selected_features": self.selected_features
+                    }
+                except Exception as e:
+                    logger.error(f"Error during model training/evaluation: {str(e)}")
+                    raise
         except Exception as e:
-            logger.error(f"Error in training pipeline: {str(e)}", exc_info=True)
+            logger.error(f"Pipeline error: {str(e)}")
             return {
                 "status": "error",
                 "error": str(e)
             }
         finally:
-            # Ensure cleanup of parallel processing resources
+            # Cleanup any resources
             try:
                 import joblib.parallel
                 joblib.parallel.get_active_backend()[0]._workers.shutdown(wait=True)
