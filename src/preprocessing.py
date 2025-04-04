@@ -209,8 +209,11 @@ def scale_features(df: pd.DataFrame, columns_to_scale: list, handle_outliers: bo
 def feature_selection(X: pd.DataFrame, y: pd.Series, n_features: int) -> tuple:
     """Select best features using SelectKBest"""
     try:
+        # Ensure all column names are strings
+        X.columns = X.columns.astype(str)
+        
         # Separate numeric and categorical columns
-        numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns if col != 'country']
+        numeric_cols = [col for col in X.select_dtypes(include=[np.number]).columns if str(col) != 'country']
         categorical_cols = ['country']  # We always want to keep the country column
         
         if len(numeric_cols) == 0:
@@ -235,12 +238,12 @@ def feature_selection(X: pd.DataFrame, y: pd.Series, n_features: int) -> tuple:
         
         # Add categorical columns first
         for col in categorical_cols:
-            X_selected[col] = X[col]
+            X_selected[str(col)] = X[col]
             
         # Add selected numeric features
         X_selected = pd.concat([
             X_selected,
-            pd.DataFrame(X_numeric_selected, columns=selected_numeric_features, index=X.index)
+            pd.DataFrame(X_numeric_selected, columns=[str(f) for f in selected_numeric_features], index=X.index)
         ], axis=1)
             
         logger.info(f"Selected features: {selected_features}")
@@ -268,6 +271,9 @@ def preprocess_pipeline(df: pd.DataFrame, target_col: str = 'banking_crisis', n_
         X = df_encoded.drop(columns=[target_col])
         y = df_encoded[target_col]
         
+        # Convert all column names to strings
+        X.columns = X.columns.astype(str)
+        
         # Scale only numerical features, excluding 'country' column
         numerical_columns = [col for col in X.select_dtypes(include=[np.number]).columns if col != 'country']
         X_scaled = X.copy()
@@ -287,8 +293,15 @@ def preprocess_pipeline(df: pd.DataFrame, target_col: str = 'banking_crisis', n_
                     else:
                         X_scaled[col] = X_scaled[col].fillna(X_scaled[col].mode()[0])
         
+        # Ensure all column names are strings before feature selection
+        X_scaled.columns = X_scaled.columns.astype(str)
+        
         # Select best features
         X_selected, selected_features, selector = feature_selection(X_scaled, y, n_features)
+        
+        # Ensure selected feature names are strings
+        X_selected.columns = X_selected.columns.astype(str)
+        selected_features = [str(f) for f in selected_features]
         
         # Verify no NaN values in final output
         assert not X_selected.isna().any().any(), "NaN values found in final preprocessed data"
