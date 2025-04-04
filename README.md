@@ -2,6 +2,14 @@
 
 A machine learning system for predicting banking crises in African countries using economic indicators.
 
+## Live Demo
+
+🌐 **Live Application**: [Crisis Prediction System](https://crisis-prediction.onrender.com/)
+
+> **Note**: The application is hosted on Render's free tier, which spins down after periods of inactivity. Initial loading may take up to 50 seconds while the service spins up.
+
+📺 **Demo Video**: [Watch on YouTube](https://youtu.be/7lD6mklIBx0)
+
 ## Project Overview
 
 This project implements a machine learning system that:
