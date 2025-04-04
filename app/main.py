@@ -52,11 +52,7 @@ templates = Jinja2Templates(directory=templates_dir)
 
 # Initialize prediction service
 try:
-    prediction_service = PredictionService(
-        model_path= os.path.join(BASE_DIR,'..','models','banking_crisis_model.pkl'),
-        scaler_path=os.path.join(BASE_DIR,'..','models','scaler.pkl'),
-        selected_features_path=os.path.join(BASE_DIR,'..','models','selected_features.pkl')
-    )
+    prediction_service = PredictionService()
     logger.info("Prediction service initialized successfully")
 except Exception as e:
     logger.error(f"Error initializing prediction service: {e}")
