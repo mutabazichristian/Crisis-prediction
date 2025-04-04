@@ -67,8 +67,25 @@ def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
         if 'year' in df.columns and len(numeric_cols) > 0:
             for col in numeric_cols:
                 if col != 'banking_crisis':
-                    df[f'{col}_rolling_mean'] = df.groupby('country')[col].rolling(window=3, min_periods=1).mean().reset_index(0, drop=True)
-                    df[f'{col}_rolling_std'] = df.groupby('country')[col].rolling(window=3, min_periods=1).std().reset_index(0, drop=True)
+                    # Calculate rolling stats and fill NaN with column means
+                    rolling_mean = df.groupby('country')[col].rolling(window=3, min_periods=1).mean()
+                    rolling_std = df.groupby('country')[col].rolling(window=3, min_periods=1).std()
+                    
+                    # Reset index to align with original dataframe
+                    rolling_mean = rolling_mean.reset_index(level=0, drop=True)
+                    rolling_std = rolling_std.reset_index(level=0, drop=True)
+                    
+                    # Fill any remaining NaN values with the column mean/std
+                    df[f'{col}_rolling_mean'] = rolling_mean.fillna(df[col].mean())
+                    df[f'{col}_rolling_std'] = rolling_std.fillna(df[col].std())
+                    
+        # Final check for any remaining NaN values
+        if df.isna().any().any():
+            logger.warning("Found NaN values after feature engineering, filling with appropriate values")
+            numeric_cols = df.select_dtypes(include=[np.number]).columns
+            df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
+            categorical_cols = df.select_dtypes(exclude=[np.number]).columns
+            df[categorical_cols] = df[categorical_cols].fillna(df[categorical_cols].mode().iloc[0])
                     
         logger.info("Feature engineering completed successfully")
         return df
@@ -228,11 +245,24 @@ def preprocess_pipeline(df: pd.DataFrame, target_col: str = 'banking_crisis', n_
         numerical_columns = X.select_dtypes(include=[np.number]).columns.tolist()
         X_scaled, scaler = scale_features(X, numerical_columns, handle_outliers=True)
         
+        # Final NaN check before feature selection
+        if X_scaled.isna().any().any():
+            logger.warning("Found NaN values before feature selection, filling with appropriate values")
+            for col in X_scaled.columns:
+                if X_scaled[col].isna().any():
+                    if np.issubdtype(X_scaled[col].dtype, np.number):
+                        X_scaled[col] = X_scaled[col].fillna(X_scaled[col].mean())
+                    else:
+                        X_scaled[col] = X_scaled[col].fillna(X_scaled[col].mode()[0])
+        
         # Select best features
         X_selected, selected_features, selector = feature_selection(X_scaled, y, n_features)
         
+        # Verify no NaN values in final output
+        assert not X_selected.isna().any().any(), "NaN values found in final preprocessed data"
+        
         logger.info("Preprocessing pipeline completed successfully")
-        return X_selected, y, scaler, selected_features, selector
+        return X_selected, y, scaler, selected_features
     except Exception as e:
         logger.error(f"Error in preprocessing pipeline: {str(e)}")
         raise

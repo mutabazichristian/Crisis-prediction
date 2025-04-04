@@ -12,70 +12,39 @@ BASE_DIR= os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 logger = logging.getLogger(__name__)
 
 class PredictionService:
-    def __init__(self, model_path=os.path.join(BASE_DIR,'..','models','banking_crisis_model.pkl'),
-                 scaler_path=os.path.join(BASE_DIR,'..','models','scaler.pkl'),
-                 selected_features_path=os.path.join(BASE_DIR,'..','models','selected_features.pkl')):
+    def __init__(self):
+        model_dir = os.path.join('models')
+        os.makedirs(model_dir, exist_ok=True)
         
-        # Suppress warnings during model loading
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            self.model = self._load_pickle(model_path)
-            self.scaler = self._load_pickle(scaler_path)
-            self.selected_features = self._load_pickle(selected_features_path)
-
-        # Check if all components are loaded
+        self.model = self._load_pickle(os.path.join(model_dir, 'banking_crisis_model.pkl'))
+        self.scaler = self._load_pickle(os.path.join(model_dir, 'scaler.pkl'))
+        self.selected_features = self._load_pickle(os.path.join(model_dir, 'selected_features.pkl'))
+        
         self.is_ready = all([self.model, self.scaler, self.selected_features])
         
         if self.is_ready:
-            logger.info(f'Prediction service initialized with {len(self.selected_features)} features')
+            logger.info(f"Prediction service initialized with {len(self.selected_features)} features")
         else:
-            logger.error('Failed to initialize one or more components')
-            # Try to retrain the model
+            logger.error("Failed to initialize prediction service")
             try:
                 logger.info("Attempting to retrain model...")
                 from src.retrain import main as retrain_model
                 retrain_model()
                 # Try loading again
-                self.model = self._load_pickle(model_path)
-                self.scaler = self._load_pickle(scaler_path)
-                self.selected_features = self._load_pickle(selected_features_path)
+                self.model = self._load_pickle(os.path.join(model_dir, 'banking_crisis_model.pkl'))
+                self.scaler = self._load_pickle(os.path.join(model_dir, 'scaler.pkl'))
+                self.selected_features = self._load_pickle(os.path.join(model_dir, 'selected_features.pkl'))
                 self.is_ready = all([self.model, self.scaler, self.selected_features])
                 if self.is_ready:
                     logger.info("Successfully retrained and loaded model!")
-                else:
-                    logger.error("Failed to load model even after retraining")
             except Exception as e:
                 logger.error(f"Failed to retrain model: {str(e)}")
 
-    def _load_pickle(self,path):
-        """Load a pickled object with multiple fallback options"""
+    def _load_pickle(self, path):
         try:
-            # Ensure numpy is properly initialized
-            import numpy as np
-            
-            methods = [
-                ('joblib', lambda p: joblib.load(p)),
-                ('pickle', lambda p: pickle.load(open(p, 'rb'))),
-                ('joblib_memory_map', lambda p: joblib.load(p, mmap_mode='r')),
-            ]
-            
-            last_error = None
-            for method_name, loader in methods:
-                try:
-                    logger.info(f"Attempting to load {path} using {method_name}")
-                    return loader(path)
-                except Exception as e:
-                    last_error = e
-                    logger.warning(f"{method_name} load failed for {path}: {str(e)}")
-                    continue
-            
-            error_msg = f'All loading methods failed for {path}. Last error: {str(last_error)}'
-            logger.error(error_msg)
-            return None
-            
+            return joblib.load(path)
         except Exception as e:
-            error_msg = f'Error in load_pickle for {path}: {str(e)}'
-            logger.error(error_msg)
+            logger.error(f"Error loading {path}: {str(e)}")
             return None
 
     def preprocess_input(self, data):
@@ -126,25 +95,29 @@ class PredictionService:
     def predict(self, data):
         """Make prediction for a single data point or batch"""
         if not self.is_ready:
-            raise RuntimeError("Prediction service is not properly initialized")
+            raise RuntimeError("Prediction service is not properly initialized. Please check the logs for details.")
             
-        # Preprocess input data
-        X = self.preprocess_input(data)
-        
-        # Make prediction
-        y_pred = self.model.predict(X)
-        y_prob = self.model.predict_proba(X)[:, 1]
-        
-        # Format results
-        results = []
-        for i in range(len(y_pred)):
-            results.append({
-                'prediction': int(y_pred[i]),
-                'probability': float(y_prob[i]),
-                'class': 'crisis' if y_pred[i] == 1 else 'no_crisis'
-            })
-        
-        return results[0] if len(results) == 1 else results
+        try:
+            # Preprocess input data
+            X = self.preprocess_input(data)
+            
+            # Make prediction
+            y_pred = self.model.predict(X)
+            y_prob = self.model.predict_proba(X)[:, 1]
+            
+            # Format results
+            results = []
+            for i in range(len(y_pred)):
+                results.append({
+                    'prediction': int(y_pred[i]),
+                    'probability': float(y_prob[i]),
+                    'class': 'crisis' if y_pred[i] == 1 else 'no_crisis'
+                })
+            
+            return results[0] if len(results) == 1 else results
+        except Exception as e:
+            logger.error(f"Error during prediction: {str(e)}")
+            raise RuntimeError(f"Prediction failed: {str(e)}")
     
     def batch_predict(self, data_list):
         """Make predictions for a batch of data points"""
@@ -207,11 +180,7 @@ if __name__ == "__main__":
     artifacts = save_prediction_artifacts(model, scaler, selected_features)
     
     # Create prediction service
-    service = PredictionService(
-        model_path=artifacts['model_path'],
-        scaler_path=artifacts['scaler_path'],
-        selected_features_path=artifacts['features_path']
-    )
+    service = PredictionService()
     
     # Test prediction on sample data
     sample_data = X_test.iloc[0].to_dict()
