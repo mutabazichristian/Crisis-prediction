@@ -15,15 +15,18 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN mkdir -p app/data/uploads models data
 
 # Copy the data file first
-COPY data/dataset.csv data/
+COPY data/dataset.csv /app/data/
+RUN ls -la /app/data/
 
 # Copy the rest of the application
 COPY . .
 COPY templates/ /app/templates/
 
-# Ensure proper permissions and train the model
-RUN chmod +x src/retrain.py && \
-    python -m src.retrain
+# Set PYTHONPATH to include the app directory
+ENV PYTHONPATH=/app
+
+# Train the model in the container
+RUN python -c "from src.retrain import main; main()"
 
 EXPOSE 8000
 

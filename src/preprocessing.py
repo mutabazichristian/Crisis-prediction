@@ -4,8 +4,22 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.feature_selection import SelectKBest, f_classif
 import logging
 from itertools import combinations
+import os
 
 logger = logging.getLogger(__name__)
+
+def load_data(path: str) -> pd.DataFrame:
+    """Load data from CSV file"""
+    try:
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Data file not found at {path}")
+            
+        df = pd.read_csv(path)
+        logger.info(f"Data loaded successfully from {path}")
+        return df
+    except Exception as e:
+        logger.error(f"Error loading data: {str(e)}")
+        raise
 
 def validate_input_data(df: pd.DataFrame) -> bool:
     """Validate input data for required columns and data types"""
