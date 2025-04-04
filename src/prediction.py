@@ -13,32 +13,43 @@ logger = logging.getLogger(__name__)
 
 class PredictionService:
     def __init__(self):
-        model_dir = os.path.join('models')
-        os.makedirs(model_dir, exist_ok=True)
-        
-        self.model = self._load_pickle(os.path.join(model_dir, 'banking_crisis_model.pkl'))
-        self.scaler = self._load_pickle(os.path.join(model_dir, 'scaler.pkl'))
-        self.selected_features = self._load_pickle(os.path.join(model_dir, 'selected_features.pkl'))
-        
-        self.is_ready = all([self.model, self.scaler, self.selected_features])
-        
-        if self.is_ready:
-            logger.info(f"Prediction service initialized with {len(self.selected_features)} features")
-        else:
-            logger.error("Failed to initialize prediction service")
-            try:
-                logger.info("Attempting to retrain model...")
-                from src.retrain import main as retrain_model
-                retrain_model()
-                # Try loading again
-                self.model = self._load_pickle(os.path.join(model_dir, 'banking_crisis_model.pkl'))
-                self.scaler = self._load_pickle(os.path.join(model_dir, 'scaler.pkl'))
-                self.selected_features = self._load_pickle(os.path.join(model_dir, 'selected_features.pkl'))
-                self.is_ready = all([self.model, self.scaler, self.selected_features])
-                if self.is_ready:
-                    logger.info("Successfully retrained and loaded model!")
-            except Exception as e:
-                logger.error(f"Failed to retrain model: {str(e)}")
+        """Initialize the prediction service"""
+        try:
+            # Define model directory
+            model_dir = os.path.join('models')
+            os.makedirs(model_dir, exist_ok=True)
+            
+            # Load model artifacts
+            model_path = os.path.join(model_dir, 'banking_crisis_model.pkl')
+            scaler_path = os.path.join(model_dir, 'scaler.pkl')
+            features_path = os.path.join(model_dir, 'selected_features.pkl')
+            
+            self.model = self._load_pickle(model_path)
+            self.scaler = self._load_pickle(scaler_path)
+            self.selected_features = self._load_pickle(features_path)
+            
+            self.is_ready = all([self.model, self.scaler, self.selected_features])
+            
+            if self.is_ready:
+                logger.info(f"Prediction service initialized with {len(self.selected_features)} features")
+            else:
+                logger.error("Failed to initialize prediction service")
+                try:
+                    logger.info("Attempting to retrain model...")
+                    from src.retrain import main as retrain_model
+                    retrain_model()
+                    # Try loading again
+                    self.model = self._load_pickle(model_path)
+                    self.scaler = self._load_pickle(scaler_path)
+                    self.selected_features = self._load_pickle(features_path)
+                    self.is_ready = all([self.model, self.scaler, self.selected_features])
+                    if self.is_ready:
+                        logger.info("Successfully retrained and loaded model!")
+                except Exception as e:
+                    logger.error(f"Failed to retrain model: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error initializing prediction service: {str(e)}")
+            raise
 
     def _load_pickle(self, path):
         try:
@@ -57,32 +68,35 @@ class PredictionService:
             else:
                 df = data
             
-            # Encode categorical
-            df_encoded = encode_categorical(df)
+            # Create all required features using the same pipeline as training
+            from src.preprocessing import engineer_features, encode_categorical
             
-            # Scale numerical features
-            numerical_columns = ['exch_usd', 'gdp_weighted_default', 'inflation_annual_cpi']
-            df_scaled = df_encoded.copy()
+            # Engineer features first
+            df_engineered = engineer_features(df)
             
-            # Get columns that are both in the dataframe and need scaling
-            columns_to_scale = [col for col in numerical_columns if col in df_scaled.columns]
-            if columns_to_scale:
-                # Use the scaler fitted on training data
-                df_scaled[columns_to_scale] = self.scaler.transform(df_scaled[columns_to_scale])
+            # Encode categorical variables
+            df_encoded = encode_categorical(df_engineered)
+            
+            # Convert all column names to strings
+            df_encoded.columns = df_encoded.columns.astype(str)
+            
+            # Scale numerical features using the saved scaler
+            numerical_columns = [col for col in df_encoded.select_dtypes(include=[np.number]).columns if col != 'country']
+            if numerical_columns:
+                df_encoded[numerical_columns] = self.scaler.transform(df_encoded[numerical_columns])
             
             # Select only the features used by the model
-            # Handle the case where some features might be missing
-            missing_features = [f for f in self.selected_features if f not in df_scaled.columns]
+            missing_features = [f for f in self.selected_features if f not in df_encoded.columns]
             if missing_features:
                 logger.warning(f"Missing features: {missing_features}")
                 for feature in missing_features:
-                    df_scaled[feature] = 0  # Add missing features with default value
+                    df_encoded[feature] = 0  # Add missing features with default value
             
             # Ensure all required features are present and in the correct order
             result = pd.DataFrame()
             for feature in self.selected_features:
-                if feature in df_scaled.columns:
-                    result[feature] = df_scaled[feature]
+                if feature in df_encoded.columns:
+                    result[feature] = df_encoded[feature]
                 else:
                     result[feature] = 0
             
