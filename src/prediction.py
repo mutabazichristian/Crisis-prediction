@@ -99,7 +99,7 @@ class PredictionService:
             if missing_required:
                 raise ValueError(f"Missing required columns: {missing_required}")
             
-            # Add additional columns with default values
+            # Add additional columns with default values if missing
             default_columns = {
                 'systemic_crisis': 0,
                 'domestic_debt_in_default': 0,
@@ -107,20 +107,22 @@ class PredictionService:
                 'currency_crises': 0,
                 'inflation_crises': 0,
                 'independence': 1,
-                'banking_crisis': 0  # Added for feature engineering
+                'banking_crisis': 0
             }
             
             for col, default_value in default_columns.items():
                 if col not in df.columns:
                     df[col] = default_value
             
-            # Create all required features using the same pipeline as training
-            from src.preprocessing import engineer_features, encode_categorical
+            # Sort by year to ensure correct rolling calculations
+            df = df.sort_values('year')
             
-            # Engineer features first
+            # Engineer features
+            from src.preprocessing import engineer_features
             df_engineered = engineer_features(df)
             
             # Encode categorical variables
+            from src.preprocessing import encode_categorical
             df_encoded = encode_categorical(df_engineered)
             
             # Convert all column names to strings
@@ -128,18 +130,23 @@ class PredictionService:
             
             # Ensure all required features exist before scaling
             if self.scaler is not None and hasattr(self.scaler, 'feature_names_in_'):
-                for feature in self.scaler.feature_names_in_:
+                scaling_features = list(self.scaler.feature_names_in_)
+                
+                # Add missing features with default value 0
+                for feature in scaling_features:
                     if feature not in df_encoded.columns:
+                        logger.debug(f"Adding missing feature: {feature}")
                         df_encoded[feature] = 0
-                        logger.debug(f"Added missing feature for scaling: {feature}")
                 
                 # Ensure correct column order for scaling
-                scaling_features = list(self.scaler.feature_names_in_)
-                other_features = [col for col in df_encoded.columns if col not in scaling_features]
-                df_encoded = df_encoded.reindex(columns=scaling_features + other_features)
+                df_encoded = df_encoded.reindex(columns=scaling_features + [col for col in df_encoded.columns if col not in scaling_features])
                 
                 # Scale the features
-                df_encoded[scaling_features] = self.scaler.transform(df_encoded[scaling_features])
+                try:
+                    df_encoded[scaling_features] = self.scaler.transform(df_encoded[scaling_features])
+                except Exception as e:
+                    logger.error(f"Error during scaling: {str(e)}")
+                    raise
             
             # Select only the features used by the model
             if self.selected_features:
@@ -150,6 +157,12 @@ class PredictionService:
                     else:
                         logger.warning(f"Missing selected feature: {feature}, using default value 0")
                         result[feature] = 0
+                
+                # Verify we have all required features
+                if len(result.columns) != len(self.selected_features):
+                    missing = set(self.selected_features) - set(result.columns)
+                    raise ValueError(f"Missing required features after preprocessing: {missing}")
+                
                 return result
             else:
                 logger.error("No selected features available")

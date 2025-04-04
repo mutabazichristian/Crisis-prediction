@@ -47,48 +47,49 @@ def validate_input_data(df: pd.DataFrame) -> bool:
         raise
 
 def engineer_features(df: pd.DataFrame) -> pd.DataFrame:
-    """Create new features and transform existing ones"""
+    """Engineer features for the model"""
     try:
+        logger.info("Starting feature engineering...")
         df = df.copy()
         
-        # Add year-based features
-        if 'year' in df.columns:
-            df['decade'] = (df['year'] // 10) * 10
-            
-        # Create interaction features for important numeric columns
-        important_numeric_cols = ['inflation_annual_cpi', 'exch_usd', 'gdp_weighted_default']
-        numeric_cols = [col for col in important_numeric_cols if col in df.columns]
+        # Convert year to decade
+        df['decade'] = (df['year'] // 10) * 10
         
-        for col1, col2 in combinations(numeric_cols, 2):
-            if col1 != 'banking_crisis' and col2 != 'banking_crisis':
-                df[f'{col1}_{col2}_interaction'] = df[col1] * df[col2]
-                
-        # Add rolling statistics if time series data is present
-        if 'year' in df.columns and len(numeric_cols) > 0:
-            for col in numeric_cols:
-                if col != 'banking_crisis':
-                    # Calculate rolling stats and fill NaN with column means
-                    rolling_mean = df.groupby('country')[col].rolling(window=3, min_periods=1).mean()
-                    rolling_std = df.groupby('country')[col].rolling(window=3, min_periods=1).std()
+        # Create interaction features
+        df['inflation_annual_cpi_exch_usd_interaction'] = df['inflation_annual_cpi'] * df['exch_usd']
+        df['inflation_annual_cpi_gdp_weighted_default_interaction'] = df['inflation_annual_cpi'] * df['gdp_weighted_default']
+        df['exch_usd_gdp_weighted_default_interaction'] = df['exch_usd'] * df['gdp_weighted_default']
+        
+        # Calculate rolling statistics with safe window size
+        window_size = min(5, len(df))
+        
+        # Group by country and calculate rolling statistics
+        for country in df['country'].unique():
+            country_mask = df['country'] == country
+            country_data = df[country_mask].sort_values('year')
+            
+            # Calculate rolling statistics for each feature
+            for feature in ['inflation_annual_cpi', 'exch_usd', 'gdp_weighted_default']:
+                if feature in df.columns:
+                    # Calculate rolling mean
+                    rolling_mean = country_data[feature].rolling(window=window_size, min_periods=1).mean()
+                    df.loc[country_mask, f'{feature}_rolling_mean'] = rolling_mean
                     
-                    # Reset index to align with original dataframe
-                    rolling_mean = rolling_mean.reset_index(level=0, drop=True)
-                    rolling_std = rolling_std.reset_index(level=0, drop=True)
-                    
-                    # Fill any remaining NaN values with the column mean/std
-                    df[f'{col}_rolling_mean'] = rolling_mean.fillna(df[col].mean())
-                    df[f'{col}_rolling_std'] = rolling_std.fillna(df[col].std())
-                    
-        # Final check for any remaining NaN values
-        if df.isna().any().any():
-            logger.warning("Found NaN values after feature engineering, filling with appropriate values")
-            numeric_cols = df.select_dtypes(include=[np.number]).columns
-            df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
-            categorical_cols = df.select_dtypes(exclude=[np.number]).columns
-            df[categorical_cols] = df[categorical_cols].fillna(df[categorical_cols].mode().iloc[0])
-                    
+                    # Calculate rolling std with minimum 1 value
+                    rolling_std = country_data[feature].rolling(window=window_size, min_periods=1).std()
+                    rolling_std = rolling_std.fillna(country_data[feature].std())  # Fill NaN with overall std
+                    df.loc[country_mask, f'{feature}_rolling_std'] = rolling_std
+        
+        # Fill any remaining NaN values
+        numeric_columns = df.select_dtypes(include=[np.number]).columns
+        for col in numeric_columns:
+            if df[col].isna().any():
+                logger.warning(f"Found NaN values in {col}, filling with mean")
+                df[col] = df[col].fillna(df[col].mean())
+        
         logger.info("Feature engineering completed successfully")
         return df
+        
     except Exception as e:
         logger.error(f"Error in feature engineering: {str(e)}")
         raise
